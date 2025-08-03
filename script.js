@@ -2300,6 +2300,9 @@ function bindEvents() {
                 break;
         }
     });
+    
+    // 绑定移动端事件
+    bindMobileEvents();
 }
 
 function toggleFullscreen() {
@@ -2397,39 +2400,49 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ========================================
-// 移动端工具栏事件处理
+// 移动端工具栏事件处理（在bindEvents函数中调用）
 // ========================================
 
-// 移动端全屏按钮
-document.getElementById('mobileFullscreenBtn')?.addEventListener('click', () => {
-    toggleFullscreen();
-});
+function bindMobileEvents() {
+    // 移动端全屏按钮
+    document.getElementById('mobileFullscreenBtn')?.addEventListener('click', () => {
+        toggleFullscreen();
+    });
 
-// 移动端清除按钮
-document.getElementById('mobileClearBtn')?.addEventListener('click', () => {
-    clearCanvas();
-});
+    // 移动端清除按钮
+    document.getElementById('mobileClearBtn')?.addEventListener('click', () => {
+        drawingSystem.clear();
+        updateStatus('画布已清除');
+        setTimeout(() => {
+            updateStatus('手部追踪已就绪！');
+        }, 1000);
+    });
 
-// 移动端烟花按钮
-document.getElementById('mobileFireworkBtn')?.addEventListener('click', () => {
-    manualFirework();
-});
+    // 移动端烟花按钮
+    document.getElementById('mobileFireworkBtn')?.addEventListener('click', () => {
+        manualFirework();
+    });
 
-// 移动端练习按钮
-document.getElementById('mobileSketchBtn')?.addEventListener('click', () => {
-    document.getElementById('sketchPanel').style.display = 'block';
-});
+    // 移动端练习按钮
+    document.getElementById('mobileSketchBtn')?.addEventListener('click', () => {
+        const sketchPanel = document.getElementById('sketchPanel');
+        if (sketchPanel) {
+            sketchPanel.style.display = 'block';
+        }
+    });
 
-// 移动端橡皮擦按钮
-document.getElementById('mobileEraserBtn')?.addEventListener('click', () => {
-    drawingSystem.toggleEraser();
-    updateEraserButtonState();
-});
+    // 移动端橡皮擦按钮
+    document.getElementById('mobileEraserBtn')?.addEventListener('click', () => {
+        drawingSystem.setEraser(!drawingSystem.isEraser);
+        updateEraserButtonState();
+        updateStatus(drawingSystem.isEraser ? '🧽 橡皮擦模式' : '🖌️ 绘画模式');
+    });
 
-// 桌面端全屏按钮
-document.getElementById('fullscreenBtn')?.addEventListener('click', () => {
-    toggleFullscreen();
-});
+    // 桌面端全屏按钮
+    document.getElementById('fullscreenBtn')?.addEventListener('click', () => {
+        toggleFullscreen();
+    });
+}
 
 // 全屏切换函数
 function toggleFullscreen() {
