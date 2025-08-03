@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="手部追踪画图应用 - 使用MediaPipe技术实现实时手部追踪和炫酷烟花效果">
+    <meta name="keywords" content="手部追踪,画图,MediaPipe,烟花,手势识别">
+    <meta name="author" content="Hand Tracking Drawing App">
+    
+    <title>手部追踪画图应用 - 炫酷烟花版 🎆</title>
+    
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" as="script">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- 网站图标 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+</head>
+<body>
+    <!-- 加载动画 -->
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>正在初始化手部追踪系统...</p>
+    </div>
+
+    <!-- 主容器 -->
+    <main id="container">
+        <!-- 视频流 -->
+        <video id="video" autoplay muted playsinline></video>
+        
+        <!-- 手部追踪画布 -->
+        <canvas id="canvas" aria-label="手部追踪显示"></canvas>
+        
+        <!-- 绘画画布 -->
+        <canvas id="drawCanvas" aria-label="绘画画布"></canvas>
+        
+        <!-- 烟花效果画布 -->
+        <canvas id="fireworksCanvas" aria-label="烟花效果"></canvas>
+        
+        <!-- 控制面板 -->
+        <aside id="controls" role="toolbar" aria-label="应用控制面板" class="collapsed">
+            <!-- 展开/收起按钮 -->
+            <button id="toggleBtn" type="button" aria-label="展开/收起控制面板" class="toggle-btn">
+                ⚙️
+            </button>
+            
+            <!-- 控制面板内容 -->
+            <div id="controlsContent" class="controls-content">
+                <!-- 工具按钮 -->
+                <div class="tool-buttons">
+                    <button id="clearBtn" type="button" aria-label="清除画布" class="tool-btn">
+                        🗑️
+                    </button>
+                    
+                    <button id="eraserBtn" type="button" aria-label="橡皮擦" class="tool-btn">
+                        🧽
+                    </button>
+                    
+                    <button id="fireworkBtn" type="button" aria-label="手动放烟花" class="tool-btn">
+                        🎆
+                    </button>
+                    
+                    <button id="sketchBtn" type="button" aria-label="简笔画模式" class="tool-btn">
+                        📝
+                    </button>
+                </div>
+                
+                <!-- 颜色选择器 -->
+                <div class="color-buttons" role="group" aria-label="画笔颜色选择">
+                    <button class="color-btn" style="background: #ff0000;" 
+                            aria-label="红色画笔" data-color="#ff0000"></button>
+                    <button class="color-btn" style="background: #0000ff;" 
+                            aria-label="蓝色画笔" data-color="#0000ff"></button>
+                    <button class="color-btn" style="background: #00ff00;" 
+                            aria-label="绿色画笔" data-color="#00ff00"></button>
+                    <button class="color-btn" style="background: #000000;" 
+                            aria-label="黑色画笔" data-color="#000000"></button>
+                    <button class="color-btn" style="background: #ffff00;" 
+                            aria-label="黄色画笔" data-color="#ffff00"></button>
+                    <button class="color-btn" style="background: #ff00ff;" 
+                            aria-label="品红色画笔" data-color="#ff00ff"></button>
+                    <button class="color-btn" style="background: #00ffff;" 
+                            aria-label="青色画笔" data-color="#00ffff"></button>
+                    <button class="color-btn" style="background: #ffa500;" 
+                            aria-label="橙色画笔" data-color="#ffa500"></button>
+                </div>
+                
+                <!-- 画笔粗细选择器 -->
+                <div class="size-controls" role="group" aria-label="画笔粗细选择">
+                    <div class="size-label">🖌️ 画笔粗细</div>
+                    <div class="brush-size-buttons">
+                        <button class="brush-size-btn size-btn" data-size="0" aria-label="细画笔">●</button>
+                        <button class="brush-size-btn size-btn" data-size="1" aria-label="中画笔">●</button>
+                        <button class="brush-size-btn size-btn" data-size="2" aria-label="粗画笔">●</button>
+                        <button class="brush-size-btn size-btn" data-size="3" aria-label="很粗画笔">●</button>
+                        <button class="brush-size-btn size-btn" data-size="4" aria-label="超粗画笔">●</button>
+                    </div>
+                    
+                    <div class="size-label">🧽 橡皮擦大小</div>
+                    <div class="eraser-size-buttons">
+                        <button class="eraser-size-btn size-btn" data-size="0" aria-label="小橡皮擦">●</button>
+                        <button class="eraser-size-btn size-btn" data-size="1" aria-label="中橡皮擦">●</button>
+                        <button class="eraser-size-btn size-btn" data-size="2" aria-label="大橡皮擦">●</button>
+                        <button class="eraser-size-btn size-btn" data-size="3" aria-label="超大橡皮擦">●</button>
+                    </div>
+                </div>
+                
+                <!-- 状态显示 -->
+                <div id="status" role="status" aria-live="polite">
+                    正在初始化手部追踪和烟花系统...
+                </div>
+                
+                                <!-- 操作指南 -->
+                <div id="instructions" role="note" aria-label="操作指南">
+                    <strong>🎯 手势操作：</strong><br>
+                    👆 食指绘画<br>
+                    ✋ 五指伸开：烟花+换色<br>
+                    👊 握拳1秒：切换橡皮擦<br>
+                    👌 捏合停止绘画<br>
+                    <small>空格:烟花 | F:全屏 | C:清除 | S:简笔画 | ESC:退出</small>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- 全屏提示 -->
+        <div id="fullscreenHint" class="fullscreen-hint" style="display: none;">
+            <p>按 F 键进入全屏模式获得最佳体验</p>
+        </div>
+        
+        <!-- 练习选择面板 -->
+        <div id="sketchPanel" class="sketch-panel" style="display: none;">
+            <div class="sketch-panel-header">
+                <h3>✏️ 选择练习内容</h3>
+                <button id="closeSketchPanel" class="close-btn">✕</button>
+            </div>
+            
+            <!-- 分类选择 -->
+            <div class="practice-categories">
+                <button class="category-btn active" data-category="sketch">
+                    🎨 简笔画
+                </button>
+                <button class="category-btn" data-category="number">
+                    🔢 数字
+                </button>
+                <button class="category-btn" data-category="letter">
+                    🔤 字母
+                </button>
+            </div>
+            
+            <!-- 简笔画模板 -->
+            <div id="sketch-templates" class="template-section active">
+                <div class="sketch-templates">
+                    <button class="template-btn" data-template="cat" data-type="sketch">
+                        <span class="template-emoji">🐱</span>
+                        <span class="template-name">小猫</span>
+                    </button>
+                    <button class="template-btn" data-template="dog" data-type="sketch">
+                        <span class="template-emoji">🐶</span>
+                        <span class="template-name">小狗</span>
+                    </button>
+                    <button class="template-btn" data-template="house" data-type="sketch">
+                        <span class="template-emoji">🏠</span>
+                        <span class="template-name">房子</span>
+                    </button>
+                    <button class="template-btn" data-template="airplane" data-type="sketch">
+                        <span class="template-emoji">✈️</span>
+                        <span class="template-name">飞机</span>
+                    </button>
+                    <button class="template-btn" data-template="flower" data-type="sketch">
+                        <span class="template-emoji">🌸</span>
+                        <span class="template-name">花朵</span>
+                    </button>
+                    <button class="template-btn" data-template="sun" data-type="sketch">
+                        <span class="template-emoji">☀️</span>
+                        <span class="template-name">太阳</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 数字模板 -->
+            <div id="number-templates" class="template-section">
+                <div class="sketch-templates">
+                    <button class="template-btn" data-template="0" data-type="number">
+                        <span class="template-emoji">0️⃣</span>
+                        <span class="template-name">数字0</span>
+                    </button>
+                    <button class="template-btn" data-template="1" data-type="number">
+                        <span class="template-emoji">1️⃣</span>
+                        <span class="template-name">数字1</span>
+                    </button>
+                    <button class="template-btn" data-template="2" data-type="number">
+                        <span class="template-emoji">2️⃣</span>
+                        <span class="template-name">数字2</span>
+                    </button>
+                    <button class="template-btn" data-template="3" data-type="number">
+                        <span class="template-emoji">3️⃣</span>
+                        <span class="template-name">数字3</span>
+                    </button>
+                    <button class="template-btn" data-template="4" data-type="number">
+                        <span class="template-emoji">4️⃣</span>
+                        <span class="template-name">数字4</span>
+                    </button>
+                    <button class="template-btn" data-template="5" data-type="number">
+                        <span class="template-emoji">5️⃣</span>
+                        <span class="template-name">数字5</span>
+                    </button>
+                    <button class="template-btn" data-template="6" data-type="number">
+                        <span class="template-emoji">6️⃣</span>
+                        <span class="template-name">数字6</span>
+                    </button>
+                    <button class="template-btn" data-template="7" data-type="number">
+                        <span class="template-emoji">7️⃣</span>
+                        <span class="template-name">数字7</span>
+                    </button>
+                    <button class="template-btn" data-template="8" data-type="number">
+                        <span class="template-emoji">8️⃣</span>
+                        <span class="template-name">数字8</span>
+                    </button>
+                    <button class="template-btn" data-template="9" data-type="number">
+                        <span class="template-emoji">9️⃣</span>
+                        <span class="template-name">数字9</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 字母模板 -->
+            <div id="letter-templates" class="template-section">
+                <div class="sketch-templates letter-grid">
+                    <button class="template-btn" data-template="A" data-type="letter">
+                        <span class="template-emoji">🅰️</span>
+                        <span class="template-name">A</span>
+                    </button>
+                    <button class="template-btn" data-template="B" data-type="letter">
+                        <span class="template-emoji">🅱️</span>
+                        <span class="template-name">B</span>
+                    </button>
+                    <button class="template-btn" data-template="C" data-type="letter">
+                        <span class="template-emoji">©️</span>
+                        <span class="template-name">C</span>
+                    </button>
+                    <button class="template-btn" data-template="D" data-type="letter">
+                        <span class="template-emoji">🇩</span>
+                        <span class="template-name">D</span>
+                    </button>
+                    <button class="template-btn" data-template="E" data-type="letter">
+                        <span class="template-emoji">📧</span>
+                        <span class="template-name">E</span>
+                    </button>
+                    <button class="template-btn" data-template="F" data-type="letter">
+                        <span class="template-emoji">🎏</span>
+                        <span class="template-name">F</span>
+                    </button>
+                    <button class="template-btn" data-template="G" data-type="letter">
+                        <span class="template-emoji">🇬</span>
+                        <span class="template-name">G</span>
+                    </button>
+                    <button class="template-btn" data-template="H" data-type="letter">
+                        <span class="template-emoji">🏨</span>
+                        <span class="template-name">H</span>
+                    </button>
+                    <button class="template-btn" data-template="I" data-type="letter">
+                        <span class="template-emoji">ℹ️</span>
+                        <span class="template-name">I</span>
+                    </button>
+                    <button class="template-btn" data-template="J" data-type="letter">
+                        <span class="template-emoji">🇯</span>
+                        <span class="template-name">J</span>
+                    </button>
+                    <button class="template-btn" data-template="K" data-type="letter">
+                        <span class="template-emoji">🇰</span>
+                        <span class="template-name">K</span>
+                    </button>
+                    <button class="template-btn" data-template="L" data-type="letter">
+                        <span class="template-emoji">🇱</span>
+                        <span class="template-name">L</span>
+                    </button>
+                    <button class="template-btn" data-template="M" data-type="letter">
+                        <span class="template-emoji">🇲</span>
+                        <span class="template-name">M</span>
+                    </button>
+                    <button class="template-btn" data-template="N" data-type="letter">
+                        <span class="template-emoji">🇳</span>
+                        <span class="template-name">N</span>
+                    </button>
+                    <button class="template-btn" data-template="O" data-type="letter">
+                        <span class="template-emoji">⭕</span>
+                        <span class="template-name">O</span>
+                    </button>
+                    <button class="template-btn" data-template="P" data-type="letter">
+                        <span class="template-emoji">🅿️</span>
+                        <span class="template-name">P</span>
+                    </button>
+                    <button class="template-btn" data-template="Q" data-type="letter">
+                        <span class="template-emoji">🇶</span>
+                        <span class="template-name">Q</span>
+                    </button>
+                    <button class="template-btn" data-template="R" data-type="letter">
+                        <span class="template-emoji">🇷</span>
+                        <span class="template-name">R</span>
+                    </button>
+                    <button class="template-btn" data-template="S" data-type="letter">
+                        <span class="template-emoji">🇸</span>
+                        <span class="template-name">S</span>
+                    </button>
+                    <button class="template-btn" data-template="T" data-type="letter">
+                        <span class="template-emoji">🇹</span>
+                        <span class="template-name">T</span>
+                    </button>
+                    <button class="template-btn" data-template="U" data-type="letter">
+                        <span class="template-emoji">🇺</span>
+                        <span class="template-name">U</span>
+                    </button>
+                    <button class="template-btn" data-template="V" data-type="letter">
+                        <span class="template-emoji">🇻</span>
+                        <span class="template-name">V</span>
+                    </button>
+                    <button class="template-btn" data-template="W" data-type="letter">
+                        <span class="template-emoji">🇼</span>
+                        <span class="template-name">W</span>
+                    </button>
+                    <button class="template-btn" data-template="X" data-type="letter">
+                        <span class="template-emoji">❌</span>
+                        <span class="template-name">X</span>
+                    </button>
+                    <button class="template-btn" data-template="Y" data-type="letter">
+                        <span class="template-emoji">🇾</span>
+                        <span class="template-name">Y</span>
+                    </button>
+                    <button class="template-btn" data-template="Z" data-type="letter">
+                        <span class="template-emoji">🇿</span>
+                        <span class="template-name">Z</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 简笔画进度显示 -->
+        <div id="sketchInfo" class="sketch-info" style="display: none;">
+            <!-- 动态内容由JavaScript生成 -->
+        </div>
+    </main>
+
+    <!-- MediaPipe 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    
+    <!-- 应用脚本 -->
+    <script src="script.js"></script>
+    
+    <!-- 性能监控 -->
+    <script>
+        // 隐藏加载动画
+        window.addEventListener('load', () => {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                setTimeout(() => {
+                    loading.style.opacity = '0';
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 300);
+                }, 1000);
+            }
+        });
+        
+        // 显示全屏提示
+        setTimeout(() => {
+            const hint = document.getElementById('fullscreenHint');
+            if (hint && !document.fullscreenElement) {
+                hint.style.display = 'block';
+                setTimeout(() => {
+                    hint.style.opacity = '0';
+                    setTimeout(() => {
+                        hint.style.display = 'none';
+                    }, 500);
+                }, 3000);
+            }
+        }, 5000);
+        
+        // 错误处理
+        window.addEventListener('error', (e) => {
+            console.error('应用错误:', e.error);
+            const status = document.getElementById('status');
+            if (status) {
+                status.textContent = '应用出现错误，请刷新页面重试';
+                status.style.color = '#ff4444';
+            }
+        });
+        
+        // 性能监控
+        if ('performance' in window) {
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    const perfData = performance.getEntriesByType('navigation')[0];
+                    console.log('页面加载时间:', perfData.loadEventEnd - perfData.loadEventStart, 'ms');
+                }, 1000);
+            });
+        }
+    </script>
+</body>
+</html>

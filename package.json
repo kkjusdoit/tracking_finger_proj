@@ -1,0 +1,58 @@
+{
+  "name": "hand-tracking-drawing-app",
+  "version": "2.5.0",
+  "description": "手部追踪画图应用 - 使用MediaPipe技术实现实时手部追踪和炫酷烟花效果",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p 8000",
+    "dev": "npx serve . -p 8000 -l",
+    "serve": "npx serve .",
+    "python": "python -m http.server 8000",
+    "python3": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "hand-tracking",
+    "mediapipe",
+    "drawing",
+    "fireworks",
+    "canvas",
+    "webcam",
+    "gesture-recognition",
+    "interactive",
+    "art",
+    "creative"
+  ],
+  "author": "Hand Tracking Drawing App",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/hand-tracking-drawing-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/hand-tracking-drawing-app/issues"
+  },
+  "homepage": "https://github.com/your-username/hand-tracking-drawing-app#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  },
+  "browserslist": [
+    "Chrome >= 70",
+    "Firefox >= 65",
+    "Safari >= 12",
+    "Edge >= 79"
+  ],
+  "files": [
+    "index.html",
+    "script.js",
+    "style.css",
+    "test.html",
+    "README_使用说明.md",
+    "快速启动指南.md",
+    "start_server.py",
+    "start_server.sh",
+    "start_server.bat"
+  ]
+} 

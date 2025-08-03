@@ -1,0 +1,937 @@
+/* ========================================
+   手部追踪画图应用 - 炫酷烟花版 v2.1
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #ffffff;
+}
+
+#container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%);
+}
+
+#video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+    transform: scaleX(-1); /* 镜像翻转，让用户感觉更自然 */
+    filter: brightness(0.8) contrast(1.2) saturate(1.1);
+}
+
+#canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+
+#drawCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+}
+
+#fireworksCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+
+/* ========================================
+   控制面板样式
+   ======================================== */
+
+#controls {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 50px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+#controls.collapsed {
+    width: 50px;
+    height: 50px;
+    border-radius: 50px;
+}
+
+#controls.expanded {
+    width: 220px;
+    border-radius: 25px;
+    padding: 15px;
+}
+
+#controls:hover {
+    box-shadow: 
+        0 8px 30px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+/* 展开/收起按钮 */
+.toggle-btn {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50px;
+    background: transparent;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 11;
+}
+
+.toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+/* 控制面板内容 */
+.controls-content {
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-top: 10px;
+}
+
+#controls.expanded .controls-content {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* 工具按钮 */
+.tool-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+}
+
+.tool-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.tool-btn.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+/* 特殊工具按钮样式 */
+#clearBtn.active {
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: white;
+}
+
+#fireworkBtn.active {
+    background: linear-gradient(135deg, #ff8800, #ff6600);
+    color: white;
+    animation: fireworkPulse 2s ease-in-out infinite;
+}
+
+#eraserBtn.active {
+    background: linear-gradient(135deg, #888888, #666666);
+    color: white;
+}
+
+@keyframes fireworkPulse {
+    0%, 100% { 
+        box-shadow: 0 0 0 2px rgba(255, 136, 0, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 0 2px rgba(255, 136, 0, 0.6);
+    }
+}
+
+/* ========================================
+   颜色按钮样式
+   ======================================== */
+
+.color-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.color-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.3s ease;
+}
+
+.color-btn:hover::before {
+    width: 100%;
+    height: 100%;
+}
+
+.color-btn:hover {
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.color-btn.active {
+    border-color: #ffffff;
+    box-shadow: 
+        0 0 0 2px rgba(255, 255, 255, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.4);
+    transform: scale(1.15);
+}
+
+/* 颜色按钮容器 */
+.color-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin: 8px 0;
+    justify-items: center;
+}
+
+/* 粗细控制器 */
+.size-controls {
+    margin: 8px 0;
+}
+
+.size-label {
+    font-size: 8px;
+    color: #cccccc;
+    text-align: center;
+    margin: 4px 0 2px 0;
+}
+
+.brush-size-buttons,
+.eraser-size-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+
+.size-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+}
+
+.size-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.size-btn.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* 不同粗细的视觉表示 */
+.brush-size-btn[data-size="0"] { font-size: 6px; }
+.brush-size-btn[data-size="1"] { font-size: 8px; }
+.brush-size-btn[data-size="2"] { font-size: 10px; }
+.brush-size-btn[data-size="3"] { font-size: 12px; }
+.brush-size-btn[data-size="4"] { font-size: 14px; }
+
+.eraser-size-btn[data-size="0"] { font-size: 8px; }
+.eraser-size-btn[data-size="1"] { font-size: 10px; }
+.eraser-size-btn[data-size="2"] { font-size: 12px; }
+.eraser-size-btn[data-size="3"] { font-size: 14px; }
+
+/* 简笔画面板 */
+.sketch-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px;
+    z-index: 1000;
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.sketch-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.sketch-panel-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* 分类选择 */
+.practice-categories {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+
+.category-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 10px 15px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.category-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.category-btn.active {
+    background: rgba(76, 175, 80, 0.4);
+    border-color: rgba(76, 175, 80, 0.8);
+    color: #fff;
+}
+
+/* 模板区域 */
+.template-section {
+    display: none;
+}
+
+.template-section.active {
+    display: block;
+}
+
+.sketch-templates {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.letter-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.template-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 15px 10px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-height: 80px;
+}
+
+.template-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.template-emoji {
+    font-size: 32px;
+}
+
+.template-name {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* 简笔画进度显示 */
+.sketch-info {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 20px;
+    color: white;
+    z-index: 100;
+    min-width: 250px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.sketch-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.exit-sketch-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    margin-left: auto;
+}
+
+.exit-sketch-btn:hover {
+    background: rgba(255, 59, 59, 0.8);
+    border-color: rgba(255, 59, 59, 1);
+    transform: scale(1.1);
+}
+
+.sketch-emoji {
+    font-size: 24px;
+}
+
+.sketch-name {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.sketch-progress {
+    margin-bottom: 10px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #cccccc;
+}
+
+.sketch-hint {
+    font-size: 13px;
+    color: #00FF41;
+    text-align: center;
+    animation: pulse 2s infinite;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.sketch-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.sketch-control-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    padding: 8px 12px;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    min-width: 50px;
+}
+
+.sketch-control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.sketch-control-btn:active {
+    transform: translateY(0);
+}
+
+.completion-message {
+    text-align: center;
+    font-size: 14px;
+    color: #FFD700;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 215, 0, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.new-sketch-btn {
+    background: rgba(76, 175, 80, 0.3);
+    border-color: rgba(76, 175, 80, 0.5);
+}
+
+.new-sketch-btn:hover {
+    background: rgba(76, 175, 80, 0.5);
+    border-color: rgba(76, 175, 80, 0.8);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+
+
+/* 全屏提示 */
+.fullscreen-hint {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 25px;
+    font-size: 14px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 100;
+    transition: opacity 0.5s ease;
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   状态和说明样式
+   ======================================== */
+
+#status {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-weight: 500;
+    line-height: 1.2;
+    margin: 6px 0;
+}
+
+#instructions {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 9px;
+    line-height: 1.3;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cccccc;
+    text-align: center;
+}
+
+#instructions br {
+    margin: 4px 0;
+}
+
+/* ========================================
+   手部追踪点样式
+   ======================================== */
+
+.hand-point {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #00ff88;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #00ff88;
+    animation: pointPulse 1s ease-in-out infinite;
+    z-index: 5;
+}
+
+@keyframes pointPulse {
+    0%, 100% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.5);
+        opacity: 0.7;
+    }
+}
+
+/* ========================================
+   烟花闪光效果
+   ======================================== */
+
+.firework-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 999;
+    animation: flashEffect 0.3s ease-out;
+}
+
+@keyframes flashEffect {
+    0% { 
+        opacity: 1;
+        transform: scale(0.5);
+    }
+    100% { 
+        opacity: 0;
+        transform: scale(1.5);
+    }
+}
+
+/* ========================================
+   响应式设计
+   ======================================== */
+
+@media (max-width: 768px) {
+    #controls.expanded {
+        width: 200px;
+        padding: 12px;
+    }
+    
+    .color-btn {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .tool-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    .size-btn {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .size-label {
+        font-size: 7px;
+    }
+    
+    #status {
+        font-size: 9px;
+        padding: 4px 6px;
+    }
+    
+    #instructions {
+        font-size: 8px;
+        padding: 6px;
+    }
+    
+    .color-buttons {
+        gap: 4px;
+    }
+    
+    .brush-size-buttons,
+    .eraser-size-buttons {
+        gap: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    #controls {
+        padding: 15px;
+        gap: 8px;
+    }
+    
+    .color-btn {
+        width: 30px;
+        height: 30px;
+    }
+    
+    #controls button {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+}
+
+/* ========================================
+   全屏模式样式
+   ======================================== */
+
+:-webkit-full-screen #controls {
+    top: 30px;
+    right: 30px;
+}
+
+:-moz-full-screen #controls {
+    top: 30px;
+    right: 30px;
+}
+
+:fullscreen #controls {
+    top: 30px;
+    right: 30px;
+}
+
+/* ========================================
+   加载动画
+   ======================================== */
+
+.loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ========================================
+   错误提示样式
+   ======================================== */
+
+.error-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(10px);
+}
+
+.error-content {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 400px;
+    margin: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.error-content h3 {
+    color: #e74c3c;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+.error-content p {
+    color: #ecf0f1;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.error-content button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.error-content button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* ========================================
+   性能优化
+   ======================================== */
+
+/* 硬件加速 */
+#canvas, #drawCanvas, #fireworksCanvas {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* 减少重绘 */
+#controls {
+    will-change: transform;
+}
+
+/* 平滑滚动 */
+html {
+    scroll-behavior: smooth;
+}
+
+/* ========================================
+   无障碍支持
+   ======================================== */
+
+/* 焦点样式 */
+#controls button:focus,
+.color-btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+    #controls {
+        background: rgba(0, 0, 0, 0.95);
+        border: 2px solid #ffffff;
+    }
+    
+    #controls button {
+        border: 2px solid #ffffff;
+    }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .firework-flash {
+        display: none;
+    }
+}
