@@ -2309,9 +2309,14 @@ function toggleFullscreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
             console.log('无法进入全屏模式:', err);
+            updateStatus('全屏模式不支持或被阻止');
         });
+        updateStatus('🔳 正在进入全屏模式...');
     } else {
-        document.exitFullscreen();
+        document.exitFullscreen().catch(err => {
+            console.log('退出全屏失败:', err);
+        });
+        updateStatus('🔳 正在退出全屏模式...');
     }
 }
 
@@ -2404,18 +2409,40 @@ document.addEventListener('visibilitychange', () => {
 // ========================================
 
 function bindMobileEvents() {
+    console.log('开始绑定移动端事件...');
+    
+    // 检查按钮是否存在
+    const mobileFullscreenBtn = document.getElementById('mobileFullscreenBtn');
+    const mobileClearBtn = document.getElementById('mobileClearBtn');
+    console.log('全屏按钮存在:', !!mobileFullscreenBtn);
+    console.log('清除按钮存在:', !!mobileClearBtn);
+    
     // 移动端全屏按钮
-    document.getElementById('mobileFullscreenBtn')?.addEventListener('click', () => {
-        toggleFullscreen();
+    mobileFullscreenBtn?.addEventListener('click', () => {
+        console.log('移动端全屏按钮被点击');
+        try {
+            toggleFullscreen();
+            console.log('全屏切换操作完成');
+        } catch (error) {
+            console.error('全屏切换失败:', error);
+            updateStatus('全屏切换失败，请重试');
+        }
     });
 
     // 移动端清除按钮
-    document.getElementById('mobileClearBtn')?.addEventListener('click', () => {
-        drawingSystem.clear();
-        updateStatus('画布已清除');
-        setTimeout(() => {
-            updateStatus('手部追踪已就绪！');
-        }, 1000);
+    mobileClearBtn?.addEventListener('click', () => {
+        console.log('移动端清除按钮被点击');
+        try {
+            drawingSystem.clear();
+            updateStatus('🗑️ 画布已清除');
+            console.log('清除操作完成');
+            setTimeout(() => {
+                updateStatus('手部追踪已就绪！');
+            }, 1000);
+        } catch (error) {
+            console.error('清除失败:', error);
+            updateStatus('清除失败，请重试');
+        }
     });
 
     // 移动端烟花按钮
@@ -2444,19 +2471,7 @@ function bindMobileEvents() {
     });
 }
 
-// 全屏切换函数
-function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.log(`进入全屏失败: ${err.message}`);
-            updateStatus('全屏模式不支持或被阻止');
-        });
-    } else {
-        document.exitFullscreen().catch(err => {
-            console.log(`退出全屏失败: ${err.message}`);
-        });
-    }
-}
+
 
 // 手动烟花函数
 function manualFirework() {
