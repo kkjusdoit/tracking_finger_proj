@@ -65,6 +65,10 @@
                     <button id="sketchBtn" type="button" aria-label="简笔画模式" class="tool-btn">
                         📝
                     </button>
+                    
+                    <button id="fullscreenBtn" type="button" aria-label="全屏模式" class="tool-btn">
+                        🔳
+                    </button>
                 </div>
                 
                 <!-- 颜色选择器 -->
@@ -119,10 +123,30 @@
                     ✋ 五指伸开：烟花+换色<br>
                     👊 握拳1秒：切换橡皮擦<br>
                     👌 捏合停止绘画<br>
-                    <small>空格:烟花 | F:全屏 | C:清除 | S:简笔画 | ESC:退出</small>
+                    <small class="desktop-shortcuts">键盘快捷键: 空格:烟花 | F:全屏 | C:清除 | S:简笔画 | ESC:退出</small>
+                    <small class="mobile-shortcuts">📱 移动端: 使用底部工具栏进行快速操作</small>
                 </div>
             </div>
         </aside>
+        
+        <!-- 移动端快捷操作栏 -->
+        <div id="mobileToolbar" class="mobile-toolbar">
+            <button id="mobileFullscreenBtn" type="button" aria-label="全屏" class="mobile-tool-btn">
+                📱
+            </button>
+            <button id="mobileClearBtn" type="button" aria-label="清除" class="mobile-tool-btn">
+                🗑️
+            </button>
+            <button id="mobileFireworkBtn" type="button" aria-label="烟花" class="mobile-tool-btn">
+                🎆
+            </button>
+            <button id="mobileSketchBtn" type="button" aria-label="练习" class="mobile-tool-btn">
+                📝
+            </button>
+            <button id="mobileEraserBtn" type="button" aria-label="橡皮擦" class="mobile-tool-btn">
+                🧽
+            </button>
+        </div>
         
         <!-- 全屏提示 -->
         <div id="fullscreenHint" class="fullscreen-hint" style="display: none;">

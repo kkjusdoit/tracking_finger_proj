@@ -2395,3 +2395,84 @@ document.addEventListener('visibilitychange', () => {
         fireworkManager.startAnimation();
     }
 });
+
+// ========================================
+// 移动端工具栏事件处理
+// ========================================
+
+// 移动端全屏按钮
+document.getElementById('mobileFullscreenBtn')?.addEventListener('click', () => {
+    toggleFullscreen();
+});
+
+// 移动端清除按钮
+document.getElementById('mobileClearBtn')?.addEventListener('click', () => {
+    clearCanvas();
+});
+
+// 移动端烟花按钮
+document.getElementById('mobileFireworkBtn')?.addEventListener('click', () => {
+    manualFirework();
+});
+
+// 移动端练习按钮
+document.getElementById('mobileSketchBtn')?.addEventListener('click', () => {
+    document.getElementById('sketchPanel').style.display = 'block';
+});
+
+// 移动端橡皮擦按钮
+document.getElementById('mobileEraserBtn')?.addEventListener('click', () => {
+    drawingSystem.toggleEraser();
+    updateEraserButtonState();
+});
+
+// 桌面端全屏按钮
+document.getElementById('fullscreenBtn')?.addEventListener('click', () => {
+    toggleFullscreen();
+});
+
+// 全屏切换函数
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log(`进入全屏失败: ${err.message}`);
+            updateStatus('全屏模式不支持或被阻止');
+        });
+    } else {
+        document.exitFullscreen().catch(err => {
+            console.log(`退出全屏失败: ${err.message}`);
+        });
+    }
+}
+
+// 手动烟花函数
+function manualFirework() {
+    const canvas = document.getElementById('fireworksCanvas');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    // 创建多个烟花
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            const x = centerX + (Math.random() - 0.5) * 200;
+            const y = centerY + (Math.random() - 0.5) * 200;
+            fireworkManager.createFirework(x, y);
+        }, i * 200);
+    }
+    
+    updateStatus('🎆 手动烟花已触发！');
+}
+
+// 更新橡皮擦按钮状态
+function updateEraserButtonState() {
+    const eraserBtn = document.getElementById('eraserBtn');
+    const mobileEraserBtn = document.getElementById('mobileEraserBtn');
+    
+    if (drawingSystem.isEraser) {
+        eraserBtn?.classList.add('active');
+        mobileEraserBtn?.classList.add('active');
+    } else {
+        eraserBtn?.classList.remove('active');
+        mobileEraserBtn?.classList.remove('active');
+    }
+}

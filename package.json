@@ -1,6 +1,6 @@
 {
   "name": "hand-tracking-drawing-app",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "手部追踪画图应用 - 使用MediaPipe技术实现实时手部追踪和炫酷烟花效果",
   "main": "index.html",
   "scripts": {
